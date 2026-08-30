@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Seat {
+  id         String     @id @default(uuid())
+  eventId    String
+  seatNumber String
+  status     String // AVAILABLE, RESERVED, SOLD
+  reservedBy String?
+  updatedAt  DateTime   @updatedAt
+  purchases  Purchase[]
+}
+
+model Purchase {
+  id                    String        @id @default(uuid())
+  seatId                String
+  seat                  Seat          @relation(fields: [seatId], references: [id])
+  buyerId               String
+  amount                Float
+  status                String // PENDING, CHARGED, CONFIRMED, COMPENSATING, FAILED
+  currentStep           String // RESERVE, CHARGE, CONFIRM, NOTIFY
+  stripePaymentIntentId String?
+  externalKey           String        @unique
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  transactions          Transaction[]
+}
+
+model Transaction {
+  id                String   @id @default(uuid())
+  purchaseId        String
+  purchase          Purchase @relation(fields: [purchaseId], references: [id])
+  type              String // CHARGE, REFUND
+  amount            Float
+  stripeReferenceId String?
+  createdAt         DateTime @default(now())
+}
