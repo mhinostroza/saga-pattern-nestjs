@@ -1,57 +1,56 @@
-# Saga Pattern en NestJS — compra de entradas
+# Saga Pattern in NestJS — concert ticket purchase
 
-Ejemplo educativo de un **saga orquestado** para comprar una entrada de
-concierto: reservar asiento → cobrar en Stripe → confirmar venta →
-notificar. Si algo falla a mitad de camino, el propio orquestador deshace
-lo que ya se hizo.
+Educational example of an **orchestrated saga** for buying a concert
+ticket: reserve seat → charge in Stripe → confirm sale → notify. If
+something fails midway, the orchestrator itself undoes what already
+happened.
 
-El corazón del proyecto es
+The heart of the project is
 [`src/purchases/services/purchase-saga.service.ts`](src/purchases/services/purchase-saga.service.ts):
-ahí vive toda la lógica de cada step y su compensación. El resto de los
-archivos (controller, `PurchasesService`, `StripeService`, `PrismaService`,
-el processor de BullMQ) son soporte mínimo para que ese service pueda
-correr.
+that's where all the step logic and its compensation live. Everything
+else (controller, `PurchasesService`, `StripeService`, `PrismaService`,
+the BullMQ processor) is minimal support so that service can run.
 
-## Levantar el proyecto
+## Running the project
 
-1. Copiar variables de entorno:
+1. Copy the environment variables:
 
    ```bash
    cp .env.example .env
    ```
 
-2. Levantar Postgres y Redis:
+2. Start Postgres and Redis:
 
    ```bash
    docker compose up -d
    ```
 
-3. Instalar dependencias, generar el cliente de Prisma y correr la
-   migración inicial:
+3. Install dependencies, generate the Prisma client, and run the initial
+   migration:
 
    ```bash
    npm install
    npx prisma migrate dev --name init
    ```
 
-4. Correr la app (HTTP + worker de BullMQ en el mismo proceso, por
-   simplicidad):
+4. Run the app (HTTP + BullMQ worker in the same process, for
+   simplicity):
 
    ```bash
    npm run start:dev
    ```
 
-## Probar el flujo
+## Trying the flow
 
-Crear un seat de prueba directo en la base (no hay endpoint para esto,
-está fuera del alcance del ejemplo):
+Create a test seat directly in the database (there's no endpoint for
+this, it's out of scope for the example):
 
 ```sql
 insert into "Seat" (id, "eventId", "seatNumber", status, "updatedAt")
 values ('11111111-1111-1111-1111-111111111111', 'concert-1', 'A1', 'AVAILABLE', now());
 ```
 
-Disparar la compra:
+Trigger the purchase:
 
 ```bash
 curl -X POST http://localhost:3000/purchases \
@@ -59,22 +58,22 @@ curl -X POST http://localhost:3000/purchases \
   -d '{"seatId":"11111111-1111-1111-1111-111111111111","buyerId":"buyer-1","amount":49.90}'
 ```
 
-Hacer polling del estado (no hay websockets, a propósito):
+Poll for status (no websockets, on purpose):
 
 ```bash
 curl http://localhost:3000/purchases/<id>
 ```
 
-`status` va a pasar por `PENDING → CHARGED → CONFIRMED`. Si el cobro o la
-confirmación fallan, vas a ver `COMPENSATING → FAILED` y el asiento vuelve
-a quedar `AVAILABLE`.
+`status` will go through `PENDING → CHARGED → CONFIRMED`. If the charge
+or confirmation fails, you'll see `COMPENSATING → FAILED` and the seat
+will go back to `AVAILABLE`.
 
-## Qué NO hace este proyecto (a propósito)
+## What this project does NOT do (on purpose)
 
-Sin aggregates, domain events, repository pattern, value objects, use
-cases / clean architecture ni websockets. Es un ejemplo enfocado en el
-patrón saga, no en arquitectura.
+No aggregates, domain events, repository pattern, value objects, use
+cases / clean architecture, or websockets. This is an example focused on
+the saga pattern, not on architecture.
 
-## Pendiente
+## Pending
 
-Tests — se agregan después de validar el flujo manualmente.
+Tests — to be added after the flow is validated manually.
