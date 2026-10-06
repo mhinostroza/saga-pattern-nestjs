@@ -29,15 +29,15 @@ the BullMQ processor) is minimal support so that service can run.
    migration:
 
    ```bash
-   npm install
-   npx prisma migrate dev --name init
+   pnpm install
+   pnpm exec prisma migrate dev --name init
    ```
 
 4. Run the app (HTTP + BullMQ worker in the same process, for
    simplicity):
 
    ```bash
-   npm run start:dev
+   pnpm run start:dev
    ```
 
 ## Trying the flow
